@@ -35,4 +35,34 @@ plt.tick_params(axis='both', which='both', bottom='off', top='off',
 
 # 現在地S0に緑丸を描画する
 line, = ax.plot([0.5], [2.5], marker="o", color='g', markersize=60)
-plt.show()
+
+# 初期の方策を決定するパラメータtheta_0を設定
+
+# 行は状態0～7、列は移動方向で↑、→、↓、←を表す
+theta_0 = np.array([[np.nan, 1, 1, np.nan],  # s0
+                    [np.nan, 1, np.nan, 1],  # s1
+                    [np.nan, np.nan, 1, 1],  # s2
+                    [1, 1, 1, np.nan],  # s3
+                    [np.nan, np.nan, 1, 1],  # s4
+                    [1, np.nan, np.nan, np.nan],  # s5
+                    [1, np.nan, np.nan, np.nan],  # s6
+                    [1, 1, np.nan, np.nan],  # s7、※s8はゴールなので、方策はなし
+                    ])
+
+
+# 方策パラメータthetaを行動方策piに変換する関数の定義
+def simple_convert_into_pi_from_theta(theta):
+    '''単純に割合を計算する'''
+
+    [m, n] = theta.shape  # thetaの行列サイズを取得
+    pi = np.zeros((m, n))
+    for i in range(0, m):
+        pi[i, :] = theta[i, :] / np.nansum(theta[i, :])  # 割合の計算
+
+    pi = np.nan_to_num(pi)  # nanを0に変換
+
+    return pi
+# 初期の方策pi_0を求める
+pi_0 = simple_convert_into_pi_from_theta(theta_0)
+# 初期の方策pi_0を表示
+print(pi_0)
