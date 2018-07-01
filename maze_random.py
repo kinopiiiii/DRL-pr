@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # 初期位置での迷路の様子
-
 # 図を描く大きさと、図の変数名を宣言
 fig = plt.figure(figsize=(5, 5))
 ax = plt.gca()
