@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # 初期位置での迷路の様子
+
 # 図を描く大きさと、図の変数名を宣言
 fig = plt.figure(figsize=(5, 5))
 ax = plt.gca()
@@ -49,89 +50,67 @@ theta_0 = np.array([[np.nan, 1, 1, np.nan],  # s0
                     ])
 
 
-# 方策パラメータthetaを行動方策piに変換する関数の定義
-def simple_convert_into_pi_from_theta(theta):
-    '''単純に割合を計算する'''
+# 方策パラメータthetaを行動方策piにソフトマックス関数で変換する手法の定義
+def softmax_convert_into_pi_from_theta(theta):
+    '''ソフトマックス関数で割合を計算する'''
 
+    beta = 1.0
     [m, n] = theta.shape  # thetaの行列サイズを取得
     pi = np.zeros((m, n))
+
+    exp_theta = np.exp(beta * theta)  # thetaをexp(theta)へと変換
+
     for i in range(0, m):
-        pi[i, :] = theta[i, :] / np.nansum(theta[i, :])  # 割合の計算
+        # pi[i, :] = theta[i, :] / np.nansum(theta[i, :])
+        # simpleに割合の計算の場合
+
+        pi[i, :] = exp_theta[i, :] / np.nansum(exp_theta[i, :])
+        # softmaxで計算の場合
 
     pi = np.nan_to_num(pi)  # nanを0に変換
 
     return pi
 
-
 # 初期の方策pi_0を求める
-pi_0 = simple_convert_into_pi_from_theta(theta_0)
-# 初期の方策pi_0を表示
-#print(pi_0)
+pi_0 = softmax_convert_into_pi_from_theta(theta_0)
 
-
-# 1step移動後の状態sを求める関数を定義
-def get_next_s(pi, s):
+# 行動aと1step移動後の状態sを求める関数を定義
+def get_action_and_next_s(pi, s):
     direction = ["up", "right", "down", "left"]
-
-    next_direction = np.random.choice(direction, p=pi[s, :])
     # pi[s,:]の確率に従って、directionが選択される
+    next_direction = np.random.choice(direction, p=pi[s, :])
 
     if next_direction == "up":
+        action = 0
         s_next = s - 3  # 上に移動するときは状態の数字が3小さくなる
     elif next_direction == "right":
+        action = 1
         s_next = s + 1  # 右に移動するときは状態の数字が1大きくなる
     elif next_direction == "down":
+        action = 2
         s_next = s + 3  # 下に移動するときは状態の数字が3大きくなる
     elif next_direction == "left":
+        action = 3
         s_next = s - 1  # 左に移動するときは状態の数字が1小さくなる
 
-    return s_next
+    return [action, s_next]
 
-# 迷路内をエージェントがゴールするまで移動させる関数の定義
-def goal_maze(pi):
+# 迷路を解く関数の定義、状態と行動の履歴を出力
+def goal_maze_ret_s_a(pi):
     s = 0  # スタート地点
-    state_history = [0]  # エージェントの移動を記録するリスト
+    s_a_history = [[0, np.nan]]  # エージェントの移動を記録するリスト
 
     while (1):  # ゴールするまでループ
-        next_s = get_next_s(pi, s)
-        state_history.append(next_s)  # 記録リストに次の状態（エージェントの位置）を追加
+        [action, next_s] = get_action_and_next_s(pi, s)
+        s_a_history[-1][1] = action
+        # 現在の状態（つまり一番最後なのでindex=-1）の行動を代入
+
+        s_a_history.append([next_s, np.nan])
+        # 次の状態を代入。行動はまだ分からないのでnanにしておく
 
         if next_s == 8:  # ゴール地点なら終了
             break
         else:
             s = next_s
 
-    return state_history
-
-# 迷路内をゴールを目指して、移動
-state_history = goal_maze(pi_0)
-
-print(state_history)
-print("迷路を解くのにかかったステップ数は" + str(len(state_history) - 1) + "です")
-
-# エージェントの移動の様子を可視化します
-# 参考URL http://louistiao.me/posts/notebooks/embedding-matplotlib-animations-in-jupyter-notebooks/
-from matplotlib import animation
-from IPython.display import HTML
-
-
-def init():
-    '''背景画像の初期化'''
-    line.set_data([], [])
-    return (line,)
-
-
-def animate(i):
-    '''フレームごとの描画内容'''
-    state = state_history[i]  # 現在の場所を描く
-    x = (state % 3) + 0.5  # 状態のx座標は、3で割った余り+0.5
-    y = 2.5 - int(state / 3)  # y座標は3で割った商を2.5から引く
-    line.set_data(x, y)
-    return (line,)
-
-
-#　初期化関数とフレームごとの描画関数を用いて動画を作成する
-anim = animation.FuncAnimation(fig, animate, init_func=init, frames=len(
-    state_history), interval=200, repeat=False)
-
-anim.save("Sample.gif", writer = 'imagemagick')
+    return s_a_history
